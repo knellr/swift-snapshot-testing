@@ -196,7 +196,9 @@ func perceptuallyCompare(_ old: CIImage, _ new: CIImage, pixelPrecision: Float, 
     colorSpace: nil
   )
   let actualPixelPrecision = 1 - averagePixel
-  guard actualPixelPrecision < pixelPrecision else { return nil }
+    guard actualPixelPrecision < pixelPrecision else {
+        return "XXX Seems good actual \(actualPixelPrecision) desired \(pixelPrecision)"
+    }
   var maximumDeltaE: Float = 0
   context.render(
     deltaOutputImage.applyingFilter("CIAreaMaximum", parameters: [kCIInputExtentKey: new.extent]),
