@@ -178,7 +178,7 @@ func perceptuallyCompare(_ old: CIImage, _ new: CIImage, pixelPrecision: Float, 
 
   let context = CIContext(options: [.workingColorSpace: NSNull(), .outputColorSpace: NSNull()])
   
-  var maximumDeltaE: Float = 0
+    var maximumDeltaE: Float = .greatestFiniteMagnitude
   context.render(
     deltaOutputImage.applyingFilter("CIAreaMaximum", parameters: [kCIInputExtentKey: new.extent]),
     toBitmap: &maximumDeltaE,
@@ -187,18 +187,21 @@ func perceptuallyCompare(_ old: CIImage, _ new: CIImage, pixelPrecision: Float, 
     format: .Rf,
     colorSpace: nil
   )
+    
+    guard maximumDeltaE != .greatestFiniteMagnitude else {
+        return "Failed to calculate CIAreaMaximum"
+    }
+    
   let actualPerceptualPrecision = 1 - maximumDeltaE / 100
     
-    guard actualPerceptualPrecision != maximumDeltaE else {
-        return "We're good I guess?"
+    guard actualPerceptualPrecision < perceptualPrecision else {
+        return "We're good I guess? At \(actualPerceptualPrecision) / \(perceptualPrecision)"
     }
-  if pixelPrecision < 1 {
-    return """
-    Actual perceptual precision \(actualPerceptualPrecision) is less than required \(perceptualPrecision)
-    """
-  } else {
-    return "Actual perceptual precision \(actualPerceptualPrecision) is less than required \(perceptualPrecision)"
-  }
+  return "Actual perceptual precision \(actualPerceptualPrecision) is less than required \(perceptualPrecision)"
+}
+
+enum MyError: Error {
+    case uhOh
 }
 
 // Copied from https://developer.apple.com/documentation/coreimage/ciimageprocessorkernel
@@ -215,7 +218,7 @@ final class ThresholdImageProcessorKernel: CIImageProcessorKernel {
       let sourceTexture = input.metalTexture,
       let destinationTexture = output.metalTexture,
       let thresholdValue = arguments?[inputThresholdKey] as? Float else {
-      return
+        throw MyError.uhOh
     }
 
     let threshold = MPSImageThresholdBinary(
