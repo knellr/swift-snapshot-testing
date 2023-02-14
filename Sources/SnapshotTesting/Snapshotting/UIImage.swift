@@ -175,32 +175,9 @@ import MetalPerformanceShaders
 @available(iOS 10.0, tvOS 10.0, macOS 10.13, *)
 func perceptuallyCompare(_ old: CIImage, _ new: CIImage, pixelPrecision: Float, perceptualPrecision: Float) -> String? {
   let deltaOutputImage = old.applyingFilter("CILabDeltaE", parameters: ["inputImage2": new])
-  let thresholdOutputImage: CIImage
-  do {
-    thresholdOutputImage = try ThresholdImageProcessorKernel.apply(
-      withExtent: new.extent,
-      inputs: [deltaOutputImage],
-      arguments: [ThresholdImageProcessorKernel.inputThresholdKey: (1 - perceptualPrecision) * 100]
-    )
-  } catch {
-    return "Newly-taken snapshot's data could not be loaded. \(error)"
-  }
-  var averagePixel: Float = .greatestFiniteMagnitude
+
   let context = CIContext(options: [.workingColorSpace: NSNull(), .outputColorSpace: NSNull()])
-  context.render(
-    thresholdOutputImage.applyingFilter("CIAreaAverage", parameters: [kCIInputExtentKey: new.extent]),
-    toBitmap: &averagePixel,
-    rowBytes: MemoryLayout<Float>.size,
-    bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
-    format: .Rf,
-    colorSpace: nil
-  )
-    guard averagePixel != .greatestFiniteMagnitude else {
-        return "Unable to render snapshot - did not write"
-    }
-    
-  let actualPixelPrecision = 1 - averagePixel
-  guard actualPixelPrecision < pixelPrecision else { return nil }
+  
   var maximumDeltaE: Float = 0
   context.render(
     deltaOutputImage.applyingFilter("CIAreaMaximum", parameters: [kCIInputExtentKey: new.extent]),
@@ -211,9 +188,12 @@ func perceptuallyCompare(_ old: CIImage, _ new: CIImage, pixelPrecision: Float, 
     colorSpace: nil
   )
   let actualPerceptualPrecision = 1 - maximumDeltaE / 100
+    
+    guard actualPerceptualPrecision != maximumDeltaE else {
+        return "We're good I guess?"
+    }
   if pixelPrecision < 1 {
     return """
-    Actual image precision \(actualPixelPrecision) is less than required \(pixelPrecision)
     Actual perceptual precision \(actualPerceptualPrecision) is less than required \(perceptualPrecision)
     """
   } else {
