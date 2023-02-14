@@ -189,7 +189,7 @@ func perceptuallyCompare(_ old: CIImage, _ new: CIImage, pixelPrecision: Float, 
   )
     
     guard maximumDeltaE != .greatestFiniteMagnitude else {
-        return "Failed to calculate CIAreaMaximum"
+        return "Failed to calculate CIAreaMaximum: context.render(deltaOutputImage.applyingFilter(\"CIAreaMaximum\", parameters: [kCIInputExtentKey: \(new.extent)]), toBitmap: <out>, rowBytes: \(MemoryLayout<Float>.size), bounds: \(CGRect(x: 0, y: 0, width: 1, height: 1)), format: .Rf, colorSpace: nil)"
     }
     
   let actualPerceptualPrecision = 1 - maximumDeltaE / 100
