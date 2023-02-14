@@ -185,7 +185,7 @@ func perceptuallyCompare(_ old: CIImage, _ new: CIImage, pixelPrecision: Float, 
   } catch {
     return "Newly-taken snapshot's data could not be loaded. \(error)"
   }
-  var averagePixel: Float = 0
+  var averagePixel: Float = .greatestFiniteMagnitude
   let context = CIContext(options: [.workingColorSpace: NSNull(), .outputColorSpace: NSNull()])
   context.render(
     thresholdOutputImage.applyingFilter("CIAreaAverage", parameters: [kCIInputExtentKey: new.extent]),
@@ -195,10 +195,12 @@ func perceptuallyCompare(_ old: CIImage, _ new: CIImage, pixelPrecision: Float, 
     format: .Rf,
     colorSpace: nil
   )
-  let actualPixelPrecision = 1 - averagePixel
-    guard actualPixelPrecision < pixelPrecision else {
-        return "XXX Seems good actual \(actualPixelPrecision) desired \(pixelPrecision)"
+    guard averagePixel != .greatestFiniteMagnitude else {
+        return "Unable to render snapshot - did not write"
     }
+    
+  let actualPixelPrecision = 1 - averagePixel
+  guard actualPixelPrecision < pixelPrecision else { return nil }
   var maximumDeltaE: Float = 0
   context.render(
     deltaOutputImage.applyingFilter("CIAreaMaximum", parameters: [kCIInputExtentKey: new.extent]),
